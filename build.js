@@ -132,8 +132,7 @@ async function buildHTML(config) {
     ];
     for (let lang of langs) {
         for (let item of srcFilePathList) {
-            let html = doCompile(item[0], lang);
-            doWrite(`${lang}/${item[1]}`, html);
+            doCompileAndWrite(item[0], `${lang}/${item[1]}`, lang);
         }
     }
 
@@ -144,30 +143,46 @@ async function buildHTML(config) {
         ['views/old-redirect/index.jade', 'index.html']
     ];
     for (let item of srcOldFilePathList) {
-        let html = doCompile(item[0], 'en');
-        doWrite(item[1], html);
+        doCompileAndWrite(item[0], item[1], 'en');
     }
 
-    function doCompile(srcRelativePath, lang) {
+    function doCompileAndWrite(srcRelativePath, destRelativePath, lang) {
         let srcAbsolutePath = path.resolve(projectDir, srcRelativePath);
-        let compiledFunction = jade.compileFile(srcAbsolutePath);
-        return compiledFunction({
+
+        const compileCfg = {
             buildVersion: config.buildVersion,
             lang: lang,
             host: config.host,
-            cdnRoot: config.cdnRoot,
             blogPath: config.blogPath,
-            mainSitePath: config.mainSitePath,
-            mainSiteCDNRoot: config.mainSiteCDNRoot,
-            envType: config.envType
-        });
-    }
+            mainSiteHost: config.mainSiteHost,
+            mainSiteCDNPayVersion: config.mainSiteCDNPayVersion,
+            cdnPayVersion: config.cdnPayVersion,
+            envType: config.envType,
+            cdnThirdParty: config.cdnThirdParty
+        };
 
-    function doWrite(destRelativePath, html) {
         let destPath = path.resolve(config.releaseDestDir, destRelativePath);
-        fse.ensureDirSync(path.dirname(destPath));
-        fs.writeFileSync(destPath, html, 'utf8');
-        console.log(chalk.green(`generated: ${destPath}`));
+        process.stdout.write(`generating: ${destPath} ...`);
+
+        try {
+            let compiledFunction = jade.compileFile(srcAbsolutePath);
+            if (config.mainSiteCDNPayRootMap) {
+                compileCfg.mainSiteCDNPayRoot = config.mainSiteCDNPayRootMap[lang];
+            }
+            if (config.cdnPayRootMap) {
+                compileCfg.cdnPayRoot = config.cdnPayRootMap[lang];
+            }
+
+            const html = compiledFunction(compileCfg);
+
+            fse.ensureDirSync(path.dirname(destPath));
+            fs.writeFileSync(destPath, html, 'utf8');
+
+            console.log(chalk.green(` Done.`));
+        }
+        catch (err) {
+            console.error(err);
+        }
     }
 
     console.log('buildHTML done.');
@@ -223,6 +238,9 @@ async function buildJS(config) {
 async function run() {
     let config = initEnv();
     config.buildVersion = +new Date();
+    // Temp: give a fixed version until need to update.
+    config.cdnPayVersion = '20200710_1';
+    config.mainSiteCDNPayVersion = '20200710_1';
 
     // await clean(config);
 

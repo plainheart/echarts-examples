@@ -565,7 +565,7 @@ function load() {
         script.onload = function () {
             loadChart();
         };
-        script.src = '../vendors/echarts-gl/echarts-gl.js';
+        script.src = window.CDN_THIRD_PARTY_ECHARTS_GL;
         document.body.appendChild(script);
     }
     else {
@@ -575,7 +575,7 @@ function load() {
     function loadChart() {
         if (configs.c) {
             console.log(configs.c);
-            $.ajax(window.CDN_ROOT_PATH + '/' + dataRoot + '/' + configs.c + '.js', {
+            $.ajax(window.CDN_PAY_ROOT_PATH + '/' + dataRoot + '/' + configs.c + '.js?_v_=' + CDN_PAY_VERSION, {
                 dataType: 'text',
                 success: function (data) {
                     gb.loadedCode = data;
